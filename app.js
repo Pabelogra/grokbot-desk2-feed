@@ -333,10 +333,13 @@
     }
   }
 
-  function botCompact(b) {
+  function botCompact(b, skipHead) {
     const color = b.color || BOT_COLORS[b.name] || "#fff";
-    let inner = '<div class="bot-name"><span class="swatch" style="background:' + color + '"></span>' + esc(b.name) + "</div>";
-    inner += '<div class="count">' + esc(b.countLabel || "") + "</div>";
+    let inner = "";
+    if (!skipHead) {
+      inner += '<div class="bot-name"><span class="swatch" style="background:' + color + '"></span>' + esc(b.name) + "</div>";
+      inner += '<div class="count">' + esc(b.countLabel || "") + "</div>";
+    }
     if (b.name === "scanner") {
       const feed = b.feed || [];
       if (!feed.length && (b.count || 0) === 0) { /* honest empty feed */ }
@@ -390,7 +393,7 @@
       (locked ? "Risk is locked while a position is open. " : "") +
       "Pause goes through Telegram (STEP 11). Shown read-only here.</div></div>";
     html += '<input type="checkbox" disabled' + (b.paused ? " checked" : "") + (locked ? " disabled" : "") + "></div>";
-    html += botCompact(b);
+    html += botCompact(b, true);
     html += '<div class="sub" style="margin:12px 0 4px">Last 20</div>' + decisionRows(b.decisions);
     html += '<button type="button" class="settings-link" data-settings="' + esc(b.name) + '">Settings</button>';
     html += "</div>";
