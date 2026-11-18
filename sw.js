@@ -1,5 +1,5 @@
 /* Cache the app shell only. Never cache /d/ feed files. */
-const SHELL = "desk-shell-v1";
+const SHELL = "desk-shell-v2";
 const ASSETS = ["./","index.html","app.css","app.js","chart.js","manifest.json","apple-touch-icon.png","icons/icon-180.png","icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {

@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Desk">
-  <title>Desk</title>
+  <meta name="apple-mobile-web-app-title" content="Grok Bot">
+  <title>Grok Bot</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="app.css">
@@ -17,17 +17,19 @@
   <div id="app">
     <div id="lock" class="screen hidden">
       <div class="lock-card">
-        <h1>Desk</h1>
+        <h1>Grok Bot</h1>
         <p>Open the private desk link to load your feed. The path and key stay in this device’s localStorage and never go back to the server.</p>
       </div>
     </div>
     <div id="shell" class="hidden">
       <header id="header" class="topbar"></header>
+      <div id="banner" hidden></div>
       <main id="main"></main>
       <nav id="tabs" class="tabbar" aria-label="Tabs">
-        <button data-tab="home" class="on">Home</button>
-        <button data-tab="activity">Activity</button>
-        <button data-tab="account">Account</button>
+        <button type="button" data-tab="home" class="on">Home</button>
+        <button type="button" data-tab="bots">Bots</button>
+        <button type="button" data-tab="activity">Activity</button>
+        <button type="button" data-tab="account">Account</button>
       </nav>
     </div>
   </div>
