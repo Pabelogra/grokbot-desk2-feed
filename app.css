@@ -485,3 +485,8 @@ input[type="range"] { padding: 0; accent-color: var(--blue); min-height: 24px; }
   font-family: var(--font-text);
 }
 .copy-opts button.on { background: var(--card); color: var(--text); }
+
+.note.proposed { color: var(--orange); }
+.set-row { align-items: flex-start; }
+.set-row .grow { width: 100%; }
+.set-row .sub { margin-top: 4px; }

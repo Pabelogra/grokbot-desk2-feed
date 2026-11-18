@@ -16,7 +16,7 @@
     ["Brain", ["risk_per_trade_pct","full_size_score","below_full_pct","max_pool_pct","min_ticket_usd","max_ticket_usd","max_trades_night"]],
     ["Executor", ["dip_pct","dip_window_min","dip_wait_min","crash_pct","tp_x","tp_sell_pct","trail_pct","recheck_liq_drop_pct","recheck_price_up_pct","quote_timeout_s","verify_timeout_s"]],
     ["Risk", ["risk.poll_s","stop_pct","timeout_h","timeout_min_gain_pct","night_loss_stop_pct"]],
-    ["Desk", ["mode","paper_start_cash","night_start","lock_time","report_time","notifier","fomo_handle","fomo_wallet","rpc_url","push_rejects","fee_pct"]],
+    ["Desk", ["mode","paper_start_cash","night_start","lock_time","report_time","notifier","fomo_handle","fomo_wallet","withdraw_address","rpc_url","push_rejects","fee_pct"]],
   ];
   const AVATAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.5-3.2 4-4.8 7-4.8S17.5 15.8 19 19"/></svg>';
   const SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5" stroke-linecap="round"/></svg>';
@@ -557,18 +557,26 @@
     if (ac.copyPicksTime) html += '<div class="sub" style="margin-top:6px">Time · ' + esc(ac.copyPicksTime) + "</div>";
     html += "</div></div></div>";
 
+    const ranges = (store.data.settings && store.data.settings.ranges) || {};
+    const rangesStatus = (store.data.settings && store.data.settings.rangesStatus) || "proposed";
+    if (rangesStatus !== "approved") {
+      html += '<div class="note proposed">Setting ranges are proposed, not yet approved. Changes go through Telegram.</div>';
+    }
     SETTING_GROUPS.forEach(function (pair) {
       const group = pair[0], keys = pair[1];
       html += '<div class="group-title" id="set-' + esc(group) + '">' + esc(group) + '</div><div class="group">';
       keys.forEach(function (k) {
-        if (!(k in st) && k !== "fomo_handle" && k !== "fomo_wallet") return;
+        if (!(k in st) && k !== "fomo_handle" && k !== "fomo_wallet" && k !== "withdraw_address") return;
         const val = st[k] != null ? st[k] : "";
-        const isPct = /_pct$/.test(k) && isFiniteNumber(val);
+        const rng = ranges[k];
+        const hasRange = rng && isFiniteNumber(rng.min) && isFiniteNumber(rng.max);
         html += '<div class="set-row"><div class="grow"><div class="name">' + esc(k) + "</div>";
         html += '<input disabled value="' + esc(val) + '">';
-        if (isPct) {
-          const n = Math.max(0, Math.min(100, Number(val)));
-          html += '<input type="range" min="0" max="100" value="' + n + '" disabled>';
+        if (hasRange && isFiniteNumber(val)) {
+          html += '<input type="range" min="' + rng.min + '" max="' + rng.max + '" step="' + rng.step + '" value="' + Number(val) + '" disabled>';
+          html += '<div class="sub">' + rng.min + "–" + rng.max + " · step " + rng.step;
+          if (rangesStatus !== "approved") html += " · proposed";
+          html += "</div>";
         }
         html += "</div></div>";
       });
