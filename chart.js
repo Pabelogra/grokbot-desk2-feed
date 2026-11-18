@@ -177,6 +177,61 @@
         paint(canvas, points, marks, null);
         prevByRange[key] = points.slice();
       }
+    },
+    drawCandles: function (canvas, candles, opts) {
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.clientWidth || 358;
+      const h = canvas.clientHeight || 180;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const rows = (candles || []).filter((c) => Number.isFinite(Number(c.close)));
+      if (!rows.length) return;
+      const exit = opts && opts.exitPrice != null ? Number(opts.exitPrice) : null;
+      let lo = Math.min.apply(null, rows.map((c) => Number(c.low != null ? c.low : c.close)));
+      let hi = Math.max.apply(null, rows.map((c) => Number(c.high != null ? c.high : c.close)));
+      if (Number.isFinite(exit)) {
+        lo = Math.min(lo, exit);
+        hi = Math.max(hi, exit);
+      }
+      const pad = 8, padT = 10, padB = 10;
+      const span = hi - lo || 1;
+      const Y = (v) => padT + (1 - (v - lo) / span) * (h - padT - padB);
+      const n = rows.length;
+      const slot = (w - pad * 2) / n;
+      if (Number.isFinite(exit)) {
+        ctx.save();
+        ctx.strokeStyle = "#ff9f0a";
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(pad, Y(exit));
+        ctx.lineTo(w - pad, Y(exit));
+        ctx.stroke();
+        ctx.restore();
+      }
+      rows.forEach((c, i) => {
+        const o = Number(c.open != null ? c.open : c.close);
+        const cl = Number(c.close);
+        const high = Number(c.high != null ? c.high : cl);
+        const low = Number(c.low != null ? c.low : cl);
+        const up = cl >= o;
+        const x = pad + slot * i + slot / 2;
+        const bw = Math.max(3, slot * 0.55);
+        ctx.strokeStyle = up ? "#00d35a" : "#ff453a";
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, Y(high));
+        ctx.lineTo(x, Y(low));
+        ctx.stroke();
+        const top = Y(Math.max(o, cl));
+        const bot = Y(Math.min(o, cl));
+        ctx.fillRect(x - bw / 2, top, bw, Math.max(1, bot - top));
+      });
     }
   };
 })(window);
