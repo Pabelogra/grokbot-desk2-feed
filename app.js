@@ -173,10 +173,64 @@
     return rows.length ? Number(rows[0].id || 0) : 0;
   }
   function hasBellDot() { const latest = latestActivityId(); return latest > 0 && latest > (store.seenActivity || 0); }
+  const TZ = "Europe/Madrid";
+  function parseTs(value) {
+    if (value == null || value === "") return null;
+    const d = value instanceof Date ? value : new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function madridParts(date) {
+    const fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23"
+    });
+    const parts = {};
+    fmt.formatToParts(date).forEach(function (p) { parts[p.type] = p.value; });
+    if (parts.month) parts.month = parts.month.replace(/\.$/, "");
+    return parts;
+  }
+  function ageAgo(ms) {
+    if (!Number.isFinite(ms) || ms < 0) ms = 0;
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return s + " s ago";
+    const m = Math.floor(s / 60);
+    if (m < 60) return m + " min ago";
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + " h ago";
+    return Math.floor(h / 24) + " d ago";
+  }
+  function formatTs(value, now) {
+    const date = parseTs(value);
+    if (!date) return "";
+    now = parseTs(now) || new Date();
+    const p = madridParts(date);
+    const n = madridParts(now);
+    const age = ageAgo(now.getTime() - date.getTime());
+    const sameDay = p.year === n.year && p.month === n.month && p.day === n.day;
+    if (sameDay) return p.hour + ":" + p.minute + ":" + p.second + " · " + age;
+    return p.day + " " + p.month + " " + p.hour + ":" + p.minute + " · " + age;
+  }
+  function tsHtml(value) {
+    const date = parseTs(value);
+    if (!date) return "";
+    return '<span data-ts="' + esc(date.toISOString()) + '">' + esc(formatTs(date)) + "</span>";
+  }
+  function tickTimes() {
+    const now = new Date();
+    document.querySelectorAll("[data-ts]").forEach(function (node) {
+      const text = formatTs(node.getAttribute("data-ts"), now);
+      if (text && node.textContent !== text) node.textContent = text;
+    });
+  }
   function formatLastUpdate() {
     if (!store.lastUpdate) return "—";
-    try { return store.lastUpdate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" }); }
-    catch (e) { return store.lastUpdate.toISOString(); }
+    return formatTs(store.lastUpdate) || "—";
   }
   function bannerText() {
     const left = store.retryAt ? Math.max(0, Math.ceil((store.retryAt - Date.now()) / 1000)) : Math.ceil(POLL_MS / 1000);
@@ -252,8 +306,8 @@
     const age = frameAgeMs();
     if (!store.liveBlob[store.liveI]) return "";
     if (age < 5000) return '<div class="live-tag"><span class="dot hot"></span>Live · Bot\'s computer</div>';
-    const t = store.frameTs ? new Date(store.frameTs).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—";
-    return '<div class="live-tag"><span class="dot"></span>Last frame ' + esc(t) + "</div>";
+    const t = store.frameTs ? tsHtml(store.frameTs) : "—";
+    return '<div class="live-tag"><span class="dot"></span>Last frame ' + t + "</div>";
   }
   function laneHtml() {
     const lane = store.data.state && store.data.state.lane;
@@ -339,6 +393,7 @@
     if (!skipHead) {
       inner += '<div class="bot-name"><span class="swatch" style="background:' + color + '"></span>' + esc(b.name) + "</div>";
       inner += '<div class="count">' + esc(b.countLabel || "") + "</div>";
+      if (b.lastHeartbeat) inner += '<div class="sub">' + tsHtml(b.lastHeartbeat) + "</div>";
     }
     if (b.name === "scanner") {
       const feed = b.feed || [];
@@ -378,8 +433,11 @@
     if (!dec || !dec.length) return '<div class="empty" style="padding:12px 0">No decisions yet</div>';
     return dec.map(function (d) {
       const label = d.verdict || d.reason || d.status || (d.score != null ? ("score " + d.score) : "decision");
-      const sub = [(d.mint || "").slice(0, 8), d.ts].filter(Boolean).join(" · ");
-      return '<div class="act-row"><div class="grow"><div class="name">' + esc(label) + '</div><div class="sub">' + esc(sub) + "</div></div>" +
+      const bits = [];
+      if (d.mint) bits.push(esc(String(d.mint).slice(0, 8)));
+      if (d.ts) bits.push(tsHtml(d.ts));
+      const sub = bits.join(" · ");
+      return '<div class="act-row"><div class="grow"><div class="name">' + esc(label) + '</div><div class="sub">' + sub + "</div></div>" +
         (d.coinUrl ? '<button type="button" class="btn grey tiny" data-url="' + esc(d.coinUrl) + '">Open on FOMO</button>' : "") + "</div>";
     }).join("");
   }
@@ -388,7 +446,10 @@
     const locked = b.riskLocked;
     let html = '<div class="bot-full" data-bot-card="' + esc(b.name) + '">';
     html += '<div class="bot-full-head"><span class="swatch" style="background:' + color + '"></span>';
-    html += '<div class="grow"><div class="name">' + esc(b.name) + '</div><div class="sub">' + esc((b.countLabel || "") + (b.status ? " · " + b.status : "")) + "</div></div></div>";
+    let sub = esc(b.countLabel || "");
+    if (b.status) sub += (sub ? " · " : "") + esc(b.status);
+    if (b.lastHeartbeat) sub += (sub ? " · " : "") + tsHtml(b.lastHeartbeat);
+    html += '<div class="grow"><div class="name">' + esc(b.name) + '</div><div class="sub">' + sub + "</div></div></div>";
     html += '<div class="pause-row"><div class="grow"><div class="name">Pause</div><div class="sub">' +
       (locked ? "Risk is locked while a position is open. " : "") +
       "Pause goes through Telegram (STEP 11). Shown read-only here.</div></div>";
@@ -402,11 +463,15 @@
 
   function activityRow(r) {
     const title = r.title || "";
-    const sub = r.subtitle || [r.bot || "", r.ts || ""].filter(Boolean).join(" · ");
+    const bits = [];
+    if (r.subtitle) bits.push(esc(r.subtitle));
+    else if (r.bot) bits.push(esc(r.bot));
+    if (r.ts) bits.push(tsHtml(r.ts));
+    const sub = bits.join(" · ");
     const kind = (r.kind || "").toLowerCase();
     const go = kind.indexOf("reject") >= 0 || kind.indexOf("audit") >= 0 ? "audit" : "coin";
     return '<div class="act-row" data-go="' + go + '" data-mint="' + esc(r.mint || "") + '"><div class="grow"><div class="name">' +
-      esc(title) + '</div><div class="sub">' + esc(sub) + '</div></div><div class="right">' + esc(r.value || "") +
+      esc(title) + '</div><div class="sub">' + sub + '</div></div><div class="right">' + esc(r.value || "") +
       (r.coinUrl ? '<div><button type="button" class="btn grey tiny" data-url="' + esc(r.coinUrl) + '">Open on FOMO</button></div>' : "") +
       "</div></div>";
   }
@@ -766,7 +831,10 @@
     if (d.kind === "search") { store.screen = "search"; render(); }
     if (d.kind === "live") openLiveViewer();
   });
-  setInterval(function () { if (store.err) paintBanner(); }, 1000);
+  setInterval(function () {
+    tickTimes();
+    if (store.err) paintBanner();
+  }, 1000);
   if (!parseSecret()) { render(); return; }
   render();
   poll();
