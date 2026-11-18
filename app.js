@@ -140,6 +140,16 @@
     const v = Number(n);
     return (v < 0 ? "-$" : "$") + Math.abs(v).toFixed(2);
   }
+  function priceFmt(n) {
+    if (n == null || n === "" || Number.isNaN(Number(n))) return "—";
+    const v = Number(n);
+    const abs = Math.abs(v);
+    if (abs === 0) return "$0.00";
+    if (abs >= 1) return money(v);
+    // Keep the real digits of a sub-dollar price; do not round 0.002634 to $0.00.
+    let s = abs.toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+    return (v < 0 ? "-$" : "$") + s;
+  }
   function pct(n) {
     if (n == null || Number.isNaN(Number(n))) return "—";
     const v = Number(n);
@@ -405,11 +415,11 @@
     $("header").innerHTML = '<button class="back" id="back">‹ Home</button><h1 style="font-size:22px">' +
       esc(name) + (paper ? ' <span class="pill paper">PAPER</span>' : "") + "</h1><span></span>";
     $("back").addEventListener("click", function () { store.screen = "home"; render(); });
-    const price = c.price && c.price.price != null ? money(c.price.price) : "—";
+    const price = c.price && c.price.price != null ? priceFmt(c.price.price) : "—";
     const pos = c.position;
     let html = '<div class="tiles">';
     [["Price", price], ["Holders", (c.price && c.price.holders) != null ? c.price.holders : (coin.holders != null ? coin.holders : "—")],
-     ["Liquidity", "—"], ["Volume m5", c.price && c.price.volumeM5 != null ? money(c.price.volumeM5) : "—"]].forEach(function (t) {
+     ["Liquidity", "—"], ["Volume m5", (c.price && (c.price.volumeM5 != null ? c.price.volumeM5 : c.price.volume_m5)) != null ? money(c.price.volumeM5 != null ? c.price.volumeM5 : c.price.volume_m5) : "—"]].forEach(function (t) {
       html += '<div class="tile"><div class="k">' + esc(t[0]) + '</div><div class="v">' + esc(t[1]) + "</div></div>";
     });
     html += "</div>";
