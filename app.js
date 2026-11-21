@@ -402,6 +402,10 @@
         if (it.verdict === "kill") inner += '<div class="feed-item killed"><span class="xname">' + esc(it.x || "") + "</span> · " + esc(it.reason || "") + "</div>";
         else if (it.verdict === "pass") inner += '<div class="feed-item passed">' + esc(it.x || "") + " → Analyst</div>";
       });
+      const scanBits = [];
+      if (b.lastScanTs) scanBits.push("Last coin " + tsHtml(b.lastScanTs));
+      if (b.checkedLast30m != null) scanBits.push(esc(String(b.checkedLast30m)) + " checked in last 30 min");
+      if (scanBits.length) inner += '<div class="sub">' + scanBits.join(" · ") + "</div>";
     } else if (b.name === "analyst") {
       inner += '<div class="strips">' + (b.layers || []).map(function (L) {
         const cls = !L || L.pass == null ? "" : (Number(L.pass) === 1 ? "pass" : "fail");
@@ -432,7 +436,7 @@
   function decisionRows(dec) {
     if (!dec || !dec.length) return '<div class="empty" style="padding:12px 0">No decisions yet</div>';
     return dec.map(function (d) {
-      const label = d.verdict || d.reason || d.status || (d.score != null ? ("score " + d.score) : "decision");
+      const label = (d.verdict && d.reason) ? (d.verdict + " · " + d.reason) : (d.verdict || d.reason || d.status || (d.score != null ? ("score " + d.score) : "decision"));
       const bits = [];
       if (d.mint) bits.push(esc(String(d.mint).slice(0, 8)));
       if (d.ts) bits.push(tsHtml(d.ts));
